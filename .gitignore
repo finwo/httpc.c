@@ -4,3 +4,7 @@
 /lib/
 /benchmark
 /test
+/.cache/
+/compile_commands.json
+*.a
+*.so

@@ -16,7 +16,13 @@ BIN=\
 	benchmark \
 	test
 
-default: README.md $(BIN)
+default: README.md $(BIN) libhttpc.a libhttpc.so
+
+libhttpc.a: $(OBJ)
+	ar rcs $@ $^
+
+libhttpc.so: $(OBJ)
+	$(CC) $(OBJ) --shared -o $@
 
 $(BIN): $(OBJ) $(BIN:=.o)
 	$(CC) $(CFLAGS) $(OBJ) $@.o -o $@
