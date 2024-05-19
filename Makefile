@@ -9,6 +9,8 @@ include lib/.dep/config.mk
 
 override CFLAGS+=$(INCLUDES)
 override CFLAGS+=-D_DEFAULT_SOURCE
+override CFLAGS+=$(shell pkg-config --cflags openssl)
+override LDFLAGS+=$(shell pkg-config --libs openssl)
 
 OBJ=$(SRC:.c=.o)
 
@@ -16,16 +18,17 @@ BIN=\
 	benchmark \
 	test
 
-default: README.md $(BIN) libhttpc.a libhttpc.so
+default: README.md $(BIN)
+# default: README.md $(BIN) libhttpc.a libhttpc.so
 
-libhttpc.a: $(OBJ)
-	ar rcs $@ $^
+# libhttpc.a: $(OBJ)
+# 	ar rcs $@ $^
 
-libhttpc.so: $(OBJ)
-	$(CC) $(OBJ) --shared -o $@
+# libhttpc.so: $(OBJ)
+# 	$(CC) $(OBJ) --shared -o $@
 
 $(BIN): $(OBJ) $(BIN:=.o)
-	$(CC) $(CFLAGS) $(OBJ) $@.o -o $@
+	$(CC) $(LDFLAGS) $(OBJ) $@.o -o $@
 
 .PHONY: clean
 clean:
