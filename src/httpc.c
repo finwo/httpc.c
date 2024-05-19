@@ -17,6 +17,8 @@
 
 #include "httpc.h"
 
+#define VERSION "0.1"
+
 #ifndef NULL
 #define NULL (void*)0
 #endif
@@ -67,13 +69,18 @@ struct http_parser_message * _httpc_fetch(const char *url, const struct httpc_fe
     memcpy(reqres->request->body->data, _opts.body->data, _opts.body->len);
   }
 
+  // Default headers (mutable)
   http_parser_header_set(reqres->request, "Host", parsed->host);
+  http_parser_header_set(reqres->request, "User-Agent", "httpc/" VERSION);
 
   if (_opts.headers != NULL) {
     for(i = 0; (&(_opts.headers[i]))->key != NULL ; i++) {
       http_parser_header_set(reqres->request, (&(_opts.headers[i]))->key, (&(_opts.headers[i]))->value);
     }
   }
+
+  // Forced headers (unmutable)
+  http_parser_header_set(reqres->request, "Connection", "close");
 
   struct buf *sndBuff = http_parser_sprint_pair_request(reqres);
   char rcvBuff[1024];
