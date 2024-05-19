@@ -29,11 +29,13 @@ int main() {
       // },
   });
 
-  struct buf *responseBuff = http_parser_sprint_response(response);
-  printf("---BEGIN---\n%*s\n---END---\n", (int)(responseBuff->len), responseBuff->data);
+  printf("---BEGIN---\n%*s\n---END---\n", (int)(response->body->len), response->body->data);
+  /* struct buf *responseBuff = http_parser_sprint_response(response); */
+  /* printf("---BEGIN---\n%*s\n---END---\n", (int)(responseBuff->len), responseBuff->data); */
   http_parser_message_free(response);
-  buf_clear(responseBuff);
-  free(responseBuff);
+  /* buf_clear(responseBuff); */
+  /* free(responseBuff); */
+
 
   return 0;
 }
