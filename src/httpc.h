@@ -88,5 +88,80 @@ struct http_parser_message * httpc_fetch(const char *url, const struct httpc_fet
 #endif // __FINWO_HTTPC_H__
 
 ///
+/// Usage
+/// -----
+///
+/// The API is designed mostly to be simple to use, not to have a crazy amount
+/// of features, and is therefor somewhat opiniated.
+///
+/// For example, defining headers resembles declaring a null-terminated
+/// key-value list:
+///
+/// ```C
+/// struct httpc_header headers[] = {
+///   { "Accept"    , "*"          },
+///   { "Connection", "close"      },
+///   { "User-Agent", "httpc/0.1"  },
+///   { NULL        , NULL         },
+/// };
+/// ```
+///
+/// And subsequently, the call to the actual fetch method is somewhat lackluster
+/// in terms of features as well:
+///
+/// ```C
+/// struct http_parser_message *response = httpc_fetch(
+///   "http://example.com",
+///   &(struct httpc_fetch_options){
+///     .follow_redirects = true,
+///     .headers          = headers,
+///   }
+/// );
+/// ```
+///
+/// Serialization of data for the body of the request is not part of this
+/// library either, so you'll have to generate that yourself, although that does
+/// grant some flexibility in how things are passed along.
+///
+/// ```C
+/// // Generate the postbody buffer
+/// const char *postBodyRaw = "{\"foo\":\"bar\"}";
+/// struct buf *postBody = calloc(1, sizeof(struct buf));
+/// buf_append(postBody, postBodyRaw, strlen(postBodyRaw));
+///
+/// // Generate request headers
+/// struct httpc_header headers[] = {
+///   { "Accept"      , "application/json" },
+///   { "Connection"  , "close"            },
+///   { "User-Agent"  , "httpc/0.1"        },
+///   { "Content-Type", "application/json" },
+///   { NULL          , NULL               },
+/// };
+///
+/// // And perform a post request
+/// struct http_parser_message *response = httpc_fetch(
+///   "https://example.com",
+///   &(struct httpc_fetch_options){
+///     .method  = "POST",
+///     .headers = headers,
+///     .body    = postBody,
+///   }
+/// );
+/// ```
+///
+/// And if you want to get the response, you'll have to decode or handle it
+/// yourself:
+///
+/// ```C
+/// const struct buf *responseBody = response->body;
+///
+/// printf("\n--- BEGIN RESPONSE ---\n");
+/// write(STDOUT, responseBody->data, responseBody->len);
+/// printf("\n--- END RESPONSE ---\n");
+///
+/// http_parser_message_free(response);
+/// ```
+
+///
 /// [fetch]: https://developer.mozilla.org/en-US/docs/Web/API/fetch
 /// [http-parser]: https://github.com/finwo/http-parser.c
