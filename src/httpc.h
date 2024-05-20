@@ -64,6 +64,7 @@ struct httpc_fetch_options {
   struct buf          *body;
   struct httpc_header *headers;
   bool                 follow_redirects;
+  bool                 compression;
 };
 ///>
 /// </details>

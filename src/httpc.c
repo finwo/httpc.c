@@ -10,6 +10,7 @@
 #include "openssl/err.h"
 #include "openssl/ssl.h"
 
+#include "finwo/em_inflate.h"
 #include "finwo/http-parser.h"
 #include "finwo/strtoupper.h"
 #include "scyphus/url-parser.h"
@@ -82,6 +83,11 @@ struct http_parser_message * _httpc_fetch(const char *url, const struct httpc_fe
   // Forced headers (unmutable)
   http_parser_header_set(reqres->request, "Connection", "close");
 
+  // Deterministic headers
+  if (_opts.compression) {
+    http_parser_header_set(reqres->request, "Accept-Encoding", "gzip, deflate");
+  }
+
   struct buf *sndBuff = http_parser_sprint_pair_request(reqres);
   char rcvBuff[1024];
 
@@ -114,7 +120,6 @@ struct http_parser_message * _httpc_fetch(const char *url, const struct httpc_fe
 
     // Handle https
     if (!strcmp(parsed->scheme, "https")) {
-      // printf("GOT SSL\n");
       SSL_CTX *ctx = InitCTX();
       SSL *ssl = SSL_new(ctx);
       SSL_set_fd(ssl, sockfd);
@@ -124,9 +129,7 @@ struct http_parser_message * _httpc_fetch(const char *url, const struct httpc_fe
         exit(1);
       }
       n = SSL_write(ssl, sndBuff->data, sndBuff->len);
-      // printf("Wrote %d\n", n);
       while((n = SSL_read(ssl, rcvBuff, sizeof(rcvBuff)))) {
-        // printf("rcv %d: %*s\n", n, n, rcvBuff);
         http_parser_pair_response_data(reqres, &((struct buf){
           .data = rcvBuff,
           .len  = n,
@@ -170,6 +173,26 @@ struct http_parser_message * _httpc_fetch(const char *url, const struct httpc_fe
   buf_clear(sndBuff);
   free(sndBuff);
 
+  // Handle decompression
+  if (_opts.compression) {
+    const char *encoding = http_parser_header_get(resp, "content-encoding");
+
+    // em_inflate supports both gzip & deflate
+    if (encoding) {
+      if ((!strcmp(encoding, "gzip")) || (!strcmp(encoding, "deflate"))) {
+        struct buf *inflatedBody = em_inflate(resp->body);
+
+        if (inflatedBody) {
+          buf_clear(resp->body);
+          free(resp->body);
+          resp->body = inflatedBody;
+        }
+      }
+    }
+
+    // TODO: brotli?
+  }
+
   return resp;
 }
 
@@ -180,8 +203,6 @@ struct http_parser_message * httpc_fetch(const char *url, const struct httpc_fet
 
   do {
     response = _httpc_fetch(_url, opts);
-
-    /* printf("HTTP/%s %d %s", response->version, response->status, response->statusMessage); */
 
     if (options->follow_redirects) {
       switch(response->status) {
